@@ -1,0 +1,24 @@
+{
+	"name"			: "fxstr-social-stream"
+	, "version"		: "0.0.1"
+	, "main"		: "src/fxstr-social-stream.js"
+	, "dependencies": {
+		"angular"	: ">=1.3.0"
+	}
+	, "ignore"		: [
+		"tests"
+		, "js"
+	]
+	, "license"		: "MIT"
+	, "authors"		: [
+		{ 
+			"name"			: "Felix Steiner"
+			, "email"		: "felix@joinbox.com"
+			, "homepage"	: "http://joinbox.com" 
+		}
+	]
+	, "repository"	: {
+		"type"		: "git"
+		, "url"		: "git://github.com/fxstr/fxstr-social-stream.git"
+	}
+}

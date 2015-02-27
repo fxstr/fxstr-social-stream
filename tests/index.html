@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-ng-app="fxstr.socialStreamTest">
+
+    <meta charset="utf-8">
+    <title>Social Stream</title>
+    
+    <style>
+
+    </style>
+
+    <script src="../js/bower_components/angular/angular.js"></script>
+    <script src="../js/bower_components/jquery/dist/jquery.js"></script>
+
+    <script src="../src/fxstr-social-stream.js"></script>
+    <script src="test.js"></script>
+
+    <script src="https://connect.facebook.net/en_US/all.js"></script>
+
+    <script>
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '1560931610830287',
+          xfbml      : false,
+          version    : 'v2.1'
+        });
+      };
+     </script>
+
+
+    <script type="text/ng-template" id="socialStreamTemplate">
+    	<ul>
+	    	<li data-ng-repeat="post in posts | orderBy : 'publishDate' : true">
+	    		<span>{{post.publishDate}}</span>
+	    		<img data-ng-attr-src="{{post.image}}" />
+	    		<p>{{ post.title }}</p>
+	    		<small> {{ post.text }} </small>
+	    		<div><span data-ng-repeat="action in post.actions"> | {{ action.count }} {{ action.name }} |</span></div>
+	    		<a data-ng-attr-href="{{post.originalLink}}">{{ post.source }}</a> von <a data-ng-attr-href="{{post.author.link}}">{{post.author.name }}</a>
+	    		<a data-ng-attr-href="{{post.link}}">link</a>
+	    	</li>
+    	</ul>
+    </script>
+
+    <div data-social-stream
+    	data-social-stream-facebook-page="'missswitzerland'"
+    	data-social-stream-instagram-token="'2191040.1fb234f.10e66d744ba94f0d847d9158a5b32a19'"
+    	data-social-stream-twitter-id="'571045784402296832'">
+    </div>
+
+</html>
