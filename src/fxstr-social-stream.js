@@ -1,3 +1,5 @@
+'use strict';
+
 angular
 .module( 'fxstr.socialStream', [] )
 .directive( 'socialStream', [ function() {
@@ -10,6 +12,8 @@ angular
 		, scope			: {
 			// ID/url of the page to be called
 			socialStreamFacebookPage		: '='
+			// URL of the php proxy file
+			, socialStreamFacebookProxy		: '='
 			// To generate id, see here: https://cdn.syndication.twimg.com/widgets/timelines/69093174?lang=en&callback=twitterFetcher.callback&suppress_response_codes=true&rnd=123123
 			, socialStreamTwitterId			: '='
 			, socialStreamInstagramToken	: '='
@@ -20,33 +24,67 @@ angular
 } ] )
 
 
-.controller( 'SocialStreamDirectiveController', [ '$scope', '$q', 'FacebookStreamService', 'TwitterStreamService', 'InstagramStreamService', function( $scope, $q, FacebookStreamService, TwitterStreamService, InstagramStreamService ) {
+.controller( 'SocialStreamDirectiveController', [ '$scope', '$q', '$attrs', 'FacebookStreamService', 'TwitterStreamService', 'InstagramStreamService', function( $scope, $q, $attrs, FacebookStreamService, TwitterStreamService, InstagramStreamService ) {
 
 	var self		= this
 		, element;
 
 	$scope.posts = [];
 
+	// Status per social network. May be
+	// 0: Not initialized
+	// 1: loading
+	// 2: loaded
+	$scope.status = {
+		facebook		: 0
+		, twitter		: 0
+		, instagram		: 0
+	}
+
 	self.init = function( el ) {
 		element = el;
 	}
 
 	// #todo: remove old posts when getting new ones
-	$scope.$watch( 'socialStreamFacebookPage', function( newValue ) {
+	$scope.$watchGroup( [ 'socialStreamFacebookPage', 'socialStreamFacebookProxy' ], function( newValue ) {
 		
-		FacebookStreamService.getPosts( newValue )
+		var fbProxyUrl	= $scope.socialStreamFacebookProxy
+			, fbPage	= $scope.socialStreamFacebookPage;
+
+
+		if( !fbProxyUrl || !fbPage ) {
+			console.log( 'FB: not yet ready %o %o', fbProxyUrl, fbPage );
+			return;
+		}
+
+		$scope.status.facebook = 1;
+
+		FacebookStreamService.getPosts( fbProxyUrl, fbPage )
 			.then( function( fbPosts ) {
-				$scope.posts = $scope.posts.concat( fbPosts );
+				console.error( 'got %o', fbPosts );
+				$scope.status.facebook		= 2;
+				$scope.posts				= $scope.posts.concat( fbPosts );
+			}, function( err ) {
+				console.error( err );
 			} );
 
 	} );
 
 
 	$scope.$watch( 'socialStreamTwitterId', function( newValue ) {
+
+		if( !newValue ) {
+			return;
+		}
+
+		$scope.status.twitter = 1;
 		
 		TwitterStreamService.getPosts( newValue )
 			.then( function( twrPosts ) {
+				$scope.status.twitter = 2;
 				$scope.posts = $scope.posts.concat( twrPosts );
+			}, function( err ) {
+				console.error( err );
 			} );
 
 	} );
@@ -54,9 +92,18 @@ angular
 
 	$scope.$watch( 'socialStreamInstagramToken', function( newValue ) {
 
+		if( !newValue ) {
+			return;
+		}
+
+		$scope.status.instagram = 1;
+
 		InstagramStreamService.getPosts( newValue )
 			.then( function( igrPosts ) {
+				$scope.status.instagram = 2;
 				$scope.posts = $scope.posts.concat( igrPosts );
+			}, function( err ) {
+				console.error( err );
 			} );
 
 	} );
@@ -69,12 +116,11 @@ angular
 		, baseUrl			= 'https://graph.facebook.com/v2.2/';
 
 
-	function parsePost( originalPost ) {
 
-		//console.log( 'parse %o', originalPost );
+	function parsePost( originalPost, fbProxyUrl, fbPage ) {
 
 		var post = new Post();
-		parsePostBase( originalPost, post );
+		parsePostBase( originalPost, post, fbProxyUrl, fbPage );
 	
 		if( originalPost.type === 'photo' ) {
 			parsePhoto( originalPost, post );
@@ -96,7 +142,7 @@ angular
 	/**
 	* Parses post's standard information
 	*/
-	function parsePostBase( originalPost, post ) {
+	function parsePostBase( originalPost, post, fbProxyUrl, fbPage ) {
 
 		post.publishDate	= new Date( originalPost.created_time );
 		post.link			= originalPost.link;
@@ -112,7 +158,7 @@ angular
 
 		// Use promise to update post.actions, as only this solution will
 		// propagate to the frontend
-		parseLikes( originalPost, post ).then( function( likeObj ) {
+		parseLikes( originalPost, post, fbProxyUrl, fbPage ).then( function( likeObj ) {
 			post.actions.push( likeObj );
 		} );
 		parseComments( originalPost, post );
@@ -120,24 +166,32 @@ angular
 	}
 
 
-	function parseLikes( originalPost, post ) {
+	function parseLikes( originalPost, post, fbProxyUrl, fbPage ) {
 
 		var deferred = $q.defer();
 
-		FB.api( originalPost.id + '/likes?limit=1000', function( response ) {
-			
-			if( !response.data ) {
-				console.error( 'FacebookStreamService: Could not get likes: %o', response );
-				return deferred.reject( response );
-			}	
+		$http.get( fbProxyUrl, {
+			params				: {
+				entity			: originalPost.id + '/likes'
+				, facebookPage	: fbPage
+			}
+		} )
+		.then( function( response ) {
 
-			var likeCount = response.data.length;
+			if( !response || !response.data || !response.data.summary ) {
+				return $q.reject( 'Could not get like data: %o', response );
+			}
 
+			// Directly add likeObj to post.actions – will update through reference
 			var likeObj			= new PostAction();
-			likeObj.count		= likeCount;
+			likeObj.count		= response.data.summary.total_count;
 			likeObj.name		= 'like';
 
-			return deferred.resolve( likeObj );
+			deferred.resolve( likeObj );
+
+		}, function( err ) {
+
+			console.error( 'FacebookStreamService: Could not get likes: %o', err );
 
 		} );
 
@@ -161,37 +215,6 @@ angular
 	}
 
 
-	/**
-	* Returns actions in form of an object: {
-	*	like		: likeLink
-	*	, comment	: commentLink
-	* }
-	*/
-	/*function parseActions( actions ) {
-
-		var ret = {
-			like		: undefined
-			, comment	: undefined
-		};
-
-		if( !actions || !actions.length ) {
-			return ret;
-		}
-
-		// Link is in originalPost.actions
-		for( var i = 0; i < actions.length; i++ ) {
-			if( actions[ i ].name === 'Like' ) {
-				ret.like = actions[ i ].link;
-			}
-			else if( actions[ i ].name === 'Comment' ) {
-				ret.comment = actions[ i ].link;
-			}
-		}
-
-		return ret;
-
-	}*/
-
 	function parseLink( originalPost, post ) {
 
 		post.title		= parseMessage( originalPost.message, originalPost.message_tags );
@@ -210,14 +233,19 @@ angular
 	function parsePhoto( originalPost, post ) {
 
 		post.title		= parseMessage( originalPost.message, originalPost.message_tags );
-		post.image		= originalPost.picture;
+
+		// originalPost.picture is tiny. Get the larger version by using http://stackoverflow.com/questions/7599638/how-to-get-large-photo-url-in-one-api-call
+		if( originalPost.object_id ) {
+			post.image		= 'https://graph.facebook.com/' + originalPost.object_id + '/picture'
+		}
+		else {
+			post.image		= originalPost.picture;
+		}
 
 	}
 
 
 	function parseMessage( message, tagObject ) {
-
-		//console.log( 'parse message %o %o', message, tagObject );
 
 		// Flatten tags
 		var tags = [];
@@ -243,7 +271,6 @@ angular
 			message = message.substr( 0, tag.offset ) + '<a href=\'http://facebook.com/' + tag.id  + '\'>' + message.substr( tag.offset, tag.length ) + '</a>' + message.substr( tag.offset + tag.length );
 		}
 
-		//console.log( 'result: %o', message );
 		return message;
 
 	}
@@ -251,33 +278,31 @@ angular
 
 	return {
 
-		getPosts: function( page ) {
+		getPosts: function( fbProxyUrl, fbPage ) {
 
-			console.log( 'FacebookStreamService: Get Facebook Posts for %o', page );
-
-			var deferred = $q.defer();
 			var posts = [];
 
-			FB.api( '/missswitzerland/feed', function( response ) {
-				
-				if( !response.data || !response.data.length ) {
-					console.error( 'FacebookStreamService: Empty response %o', response.data );
-					deferred.reject( response );
-					return;
+			return $http.get( fbProxyUrl, {
+				params				: {
+					facebookPage	: fbPage
+				}
+			} )
+			.then( function( response ) {
+
+				if( !response || !response.data || !response.data.data || !response.data.data.length ) {
+					return $q.reject( 'Facebook response not valid' );
 				}
 
-				var posts = [];
-
-				for( var i = 0; i < response.data.length; i++ ) {
-					var post = response.data[ i ];
-					posts.push( parsePost( post ) );
+				for( var i = 0; i < response.data.data.length; i++ ) {
+					var parsedPost = parsePost( response.data.data[ i ], fbProxyUrl, fbPage );
+					posts.push( parsedPost );
 				}
 
-				deferred.resolve( posts );
+				return posts;
 
+			}, function( err ) {
+				return $q.reject( err );
 			} );
-
-			return deferred.promise;
 
 		}
 	};
@@ -411,7 +436,7 @@ angular
 		}
 
 		if( originalPost.caption ) {
-			post.title			= originalPost.caption.text;
+			post.title		= originalPost.caption.text;
 		}
 		
 		post.actions.push( parseLikes( originalPost ) );

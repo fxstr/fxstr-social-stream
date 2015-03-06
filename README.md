@@ -30,20 +30,12 @@ Plugin requires angular.
   
 1. If you'd like to use Facebook: 
 
-  1. Create a new Facebook app and get it's ID or use the ID of an existing one. 
-  2. Include the Facebook JS SDK on your site (for async loading, consult [the Facebook JS SDK documentation](https://developers.facebook.com/docs/javascript/quickstart/v2.2):
-   
-    ```html
-        <script src="https://connect.facebook.net/en_US/all.js"></script>
-        <script>
-	      window.fbAsyncInit = function() {
-	      FB.init( {
-	        appId        : 'your-app-id'
-	        , xfbml      : true
-	        , version    : 'v2.1'
-	      } );
-	    };
-	```
+  Since ~2011, Facebook requires you to provide an access token, even when accessing the feed of a public page (yeah, I know). As you should (really!) not publish your access token in your javascript code, we use a simple PHP script that acts as a proxy, as the PHP code is not publicly accessible. 
+  
+  1. Generate an access token. Make sure it doesn't expire. Here's a [good tutorial](http://appdevresources.blogspot.sg/2012/11/extend-facebook-access-token-make-it.html).
+  1. Make really sure it doesn't expire: Use it with the [Graph Explorer](https://developers.facebook.com/tools/explorer), use the Debug (access token) tool.
+  1. Copy the PHP script you'll find in this repo under /src/facebook-proxy.php (a node version might follow) to your site.
+  1. Insert your access token into the PHP script.
 
 1. If you'd like to use Twitter:
 
@@ -61,30 +53,30 @@ Plugin requires angular.
   1. Your API token will be visible in the URL that's being called.
 
 
-1. Add the social Stream to your DOM: 
+1. Add the social stream direcitve to your DOM: 
   ```html
   <div data-social-stream
     data-social-stream-facebook-page="'myPage'"
+    data-social-stream-facebook-proxy="'/path/to/your/facebook-proxy.php'"
     data-social-stream-instagram-token="'myToken'"
     data-social-stream-twitter-id="'myWidgetId'">
   </div>
-  ``
+  ```
 
-1. Create the template (id must be ```socialStreamTemplate```)
+1. Create the template (id must be ```socialStreamTemplate```, type ```text/ng-template```)
 
   ```html
     <script type="text/ng-template" id="socialStreamTemplate">
-    	<ul>
-	    	<li data-ng-repeat="post in posts | orderBy : 'publishDate' : true">
-	    		<span>{{post.publishDate}}</span>
-	    		<img data-ng-attr-src="{{post.image}}" />
-	    		<p>{{ post.title }}</p>
-	    		<small> {{ post.text }} </small>
-	    		<div><span data-ng-repeat="action in post.actions"> | {{ action.count }} {{ action.name }} |</span></div>
-	    		<a data-ng-attr-href="{{post.originalLink}}">{{ post.source }}</a> von <a data-ng-attr-href="{{post.author.link}}">{{post.author.name }}</a>
-	    		<a data-ng-attr-href="{{post.link}}">link</a>
-	    	</li>
-    	</ul>
+      <ul>
+        <li data-ng-repeat="post in posts | orderBy : 'publishDate' : true">
+          <span>{{post.publishDate}}</span>
+          <img data-ng-attr-src="{{post.image}}" />
+          <p>{{ post.title }}</p>
+          <small> {{ post.text }} </small>
+          <div><span data-ng-repeat="action in post.actions"> | {{ action.count }} {{ action.name }} |</span></div>
+          <a data-ng-attr-href="{{post.originalLink}}">{{ post.source }}</a> von <a data-ng-attr-href="{{post.author.link}}">{{post.author.name }}</a>
+          <a data-ng-attr-href="{{post.link}}">link</a>
+        </li>
+      </ul>
     </script>
-
   ```
