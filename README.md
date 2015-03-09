@@ -58,7 +58,8 @@ Plugin requires angular.
   <div data-social-stream
     data-social-stream-facebook-page="'myPage'"
     data-social-stream-facebook-proxy="'/path/to/your/facebook-proxy.php'"
-    data-social-stream-instagram-token="'myToken'"
+    data-social-stream-instagram-token="'instagramToken'"
+    data-social-stream-instagram-user-id="'instagramUserId'"
     data-social-stream-twitter-id="'myWidgetId'">
   </div>
   ```
