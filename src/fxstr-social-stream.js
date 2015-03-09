@@ -17,6 +17,7 @@ angular
 			// To generate id, see here: https://cdn.syndication.twimg.com/widgets/timelines/69093174?lang=en&callback=twitterFetcher.callback&suppress_response_codes=true&rnd=123123
 			, socialStreamTwitterId			: '='
 			, socialStreamInstagramToken	: '='
+			, socialStreamInstagramUserId	: '='
 		}
 		, templateUrl	: 'socialStreamTemplate'
 	};
@@ -90,15 +91,15 @@ angular
 	} );
 
 
-	$scope.$watch( 'socialStreamInstagramToken', function( newValue ) {
+	$scope.$watchGroup( [ 'socialStreamInstagramToken', 'socialStreamInstagramUserId' ], function( newValue ) {
 
-		if( !newValue ) {
+		if( !newValue[ 0 ] || !newValue[ 1 ] ) {
 			return;
 		}
 
 		$scope.status.instagram = 1;
 
-		InstagramStreamService.getPosts( newValue )
+		InstagramStreamService.getPosts( newValue[ 0 ], newValue[ 1 ] )
 			.then( function( igrPosts ) {
 				$scope.status.instagram = 2;
 				$scope.posts = $scope.posts.concat( igrPosts );
@@ -421,7 +422,7 @@ angular
 
 
 
-.service( 'InstagramStreamService', [ '$http', function( $http ) {
+.service( 'InstagramStreamService', [ '$http', '$q', function( $http, $q ) {
 
 
 	function parsePost( originalPost ) {
@@ -479,10 +480,10 @@ angular
 
 	return {
 
-		getPosts: function( token ) {
+		getPosts: function( token, userId ) {
 
 			//https://api.instagram.com/v1/users/self/feed
-			return $http.jsonp( 'https://api.instagram.com/v1/users/self/feed', {
+			return $http.jsonp( 'https://api.instagram.com/v1/users/' + userId + '/media/recent', {
 				params : {
 					access_token	: token
 					, callback		: 'JSON_CALLBACK'
