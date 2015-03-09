@@ -63,7 +63,7 @@ Plugin requires angular.
   </div>
   ```
 
-1. Create the template (id must be ```socialStreamTemplate```, type ```text/ng-template```)
+1. Create the template (id must be ```socialStreamTemplate```, type ```text/ng-template``)
 
   ```html
     <script type="text/ng-template" id="socialStreamTemplate">

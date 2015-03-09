@@ -430,6 +430,7 @@ angular
 
 		post.publishDate	= new Date( originalPost.created_time * 1000 );
 		post.originalLink	= originalPost.link;
+		post.source			= 'instagram';
 
 		if( originalPost.images && originalPost.images.standard_resolution ) {
 			post.image		= originalPost.images.standard_resolution.url
