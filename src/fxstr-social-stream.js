@@ -62,7 +62,6 @@ angular
 
 		FacebookStreamService.getPosts( fbProxyUrl, fbPage )
 			.then( function( fbPosts ) {
-				console.error( 'got %o', fbPosts );
 				$scope.status.facebook		= 2;
 				$scope.posts				= $scope.posts.concat( fbPosts );
 			}, function( err ) {
@@ -133,7 +132,7 @@ angular
 			parseLink( originalPost, post );
 		}
 		else {
-			console.error( originalPost.type );
+			console.error( 'Unknown FB post type: %o', originalPost.type );
 		}
 
 		return post;
@@ -226,16 +225,40 @@ angular
 
 
 	function parseVideo( originalPost, post ) {
-		post.image		= originalPost.picture;
-		post.title		= parseMessage( originalPost.message, originalPost.message_tags );
+		console.error( originalPost );
+
+		// PICTURE
+		// See parsePhoto
+		if( originalPost.object_id ) {
+			post.image	= 'https://graph.facebook.com/' + originalPost.object_id + '/picture'
+		}
+		// get objectId from link property, looks like https://www.facebook.com/video.php?v=714971548622550
+		else if( post.link && /v=\d*/.test( post.link ) ) {
+			var objectId = /v=(\d*)$/.exec( post.link )[ 1 ];
+			post.image = 'https://graph.facebook.com/' + objectId + '/picture';
+		}
+		else {
+			post.image	= originalPost.picture;
+		}
+
+		// TEXT
+		post.title		= '';
+		if( originalPost.description ) {
+			post.title	+= originalPost.description + ' ';
+		}
+		if( originalPost.message ) {
+			post.title	+= parseMessage( originalPost.message, originalPost.message_tags );
+		}
+
 	}
 
 
 	function parsePhoto( originalPost, post ) {
 
-		post.title		= parseMessage( originalPost.message, originalPost.message_tags );
+		post.title			= parseMessage( originalPost.message, originalPost.message_tags );
 
 		// originalPost.picture is tiny. Get the larger version by using http://stackoverflow.com/questions/7599638/how-to-get-large-photo-url-in-one-api-call
+		// See parseVideo
 		if( originalPost.object_id ) {
 			post.image		= 'https://graph.facebook.com/' + originalPost.object_id + '/picture'
 		}
@@ -634,4 +657,3 @@ function PostAuthor() {
 	} );	
 
 }
-
