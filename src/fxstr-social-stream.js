@@ -149,8 +149,10 @@ angular
 		// date
 		post.publishDate	= new Date( originalPost.created_time.replace( /\+\d{4,4}$/, '' ) );
 
+		console.error( originalPost );
+
 		post.link			= originalPost.link;
-		post.originalLink	= 'http://facebook.com/' + originalPost.id;
+		post.originalLink	= 'http://facebook.com/' + originalPost.id.split( '_' )[ 0 ] + '/posts/' + originalPost.id.split( '_' )[ 1 ];
 		post.source			= typeIdentifier;
 		post.type			= originalPost.type;
 
@@ -604,7 +606,7 @@ function Post() {
 		writable: true
 	} );
 
-	// External link
+	// External link (external website that e.g. a facebook post points to)
 	Object.defineProperty( this, 'link', {
 		writable: true
 	} );
