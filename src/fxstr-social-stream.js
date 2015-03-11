@@ -229,7 +229,6 @@ angular
 
 
 	function parseVideo( originalPost, post ) {
-		console.error( originalPost );
 
 		// PICTURE
 		// See parsePhoto
@@ -525,9 +524,7 @@ angular
 				var posts = [];
 
 				for( var i = 0; i < response.data.data.length; i++ ) {
-					console.log( response.data.data[ i ] );
 					var post = parsePost( response.data.data[ i ] );
-					console.log( 'parsed: %o', post );
 					posts.push( post );
 				}
 
