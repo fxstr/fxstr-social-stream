@@ -144,7 +144,11 @@ angular
 	*/
 	function parsePostBase( originalPost, post, fbProxyUrl, fbPage ) {
 
-		post.publishDate	= new Date( originalPost.created_time );
+
+		// Remove +0000 from date. Date returned by created_time won't be parsed by Safari into valid
+		// date
+		post.publishDate	= new Date( originalPost.created_time.replace( /\+\d{4,4}$/, '' ) );
+
 		post.link			= originalPost.link;
 		post.originalLink	= 'http://facebook.com/' + originalPost.id;
 		post.source			= typeIdentifier;
@@ -353,9 +357,7 @@ angular
 
 		post.source			= 'twitter';
 		post.title			= originalTweet.find( '.e-entry-title' ).html();
-		post.publishDate	= new Date( originalTweet.find( '.header time' ).attr( 'datetime' ) );
-
-		// Retweets
+		post.publishDate	= new Date( originalTweet.find( '.header time' ).attr( 'datetime' ).replace( /\+\d{4,4}$/, '' ) );
 
 		post.author			= parseAuthor( originalTweet, post );
 		post.originalLink	= post.author.link + '/status/' + originalTweet.data( 'tweetId' )
@@ -657,3 +659,4 @@ function PostAuthor() {
 	} );	
 
 }
+
