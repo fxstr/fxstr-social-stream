@@ -60,9 +60,12 @@ Plugin requires angular.
     data-social-stream-facebook-proxy="'/path/to/your/facebook-proxy.php'"
     data-social-stream-instagram-token="'instagramToken'"
     data-social-stream-instagram-user-id="'instagramUserId'"
-    data-social-stream-twitter-id="'myWidgetId'">
+    data-social-stream-twitter-id="'myWidgetId'"
+    data-social-stream-caching-time="'60'">
   </div>
   ```
+
+  The attribute ```data-social-stream-caching-time``` sets the time for which the stream may be cached in the local storage; this saves a lot of requests if your users view a lot of pages/visit. If you set it to ```60```, the stream will only be fetched every 60 min and in the meantime be stored in the user's browser (local storage). If it's not set, localStorage is not used.
 
 1. Create the template (id must be ```socialStreamTemplate```, type ```text/ng-template``)
 
