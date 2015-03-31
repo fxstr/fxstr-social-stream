@@ -1,6 +1,6 @@
-'use strict';
-
 (function( window ) {
+
+	'use strict';
 
 	angular
 	.module( 'fxstr.socialStream', [] )
@@ -43,11 +43,11 @@
 			facebook		: 0
 			, twitter		: 0
 			, instagram		: 0
-		}
+		};
 
 		self.init = function( el ) {
 			element = el;
-		}
+		};
 
 
 
@@ -64,8 +64,8 @@
 
 			$scope.status.facebook = 1;
 
-			var fbPosts;
-			if( fbPosts = SocialStreamStorageService.retrieve( 'facebook', fbPage, $scope.socialStreamCachingTime ) ) {
+			var fbPosts = SocialStreamStorageService.retrieve( 'facebook', fbPage, $scope.socialStreamCachingTime );
+			if( fbPosts ) {
 				$scope.posts 			= $scope.posts.concat( fbPosts );
 				$scope.status.facebook	= 2;
 				return;
@@ -89,8 +89,8 @@
 				return;
 			}
 
-			var twrPosts;
-			if( twrPosts = SocialStreamStorageService.retrieve( 'twitter', newValue, $scope.socialStreamCachingTime ) ) {
+			var twrPosts = SocialStreamStorageService.retrieve( 'twitter', newValue, $scope.socialStreamCachingTime );
+			if( twrPosts ) {
 				$scope.posts 			= $scope.posts.concat( twrPosts );
 				$scope.status.twitter	= 2;
 				return;
@@ -116,8 +116,8 @@
 				return;
 			}
 
-			var igrPosts;
-			if( igrPosts = SocialStreamStorageService.retrieve( 'instagram', newValue[ 1 ], $scope.socialStreamCachingTime ) ) {
+			var igrPosts = SocialStreamStorageService.retrieve( 'instagram', newValue[ 1 ], $scope.socialStreamCachingTime );
+			if( igrPosts ) {
 				$scope.posts 			= $scope.posts.concat( igrPosts );
 				$scope.status.instagram = 2;
 				return;
@@ -148,13 +148,13 @@
 					return;
 				}
 
-				var data = {
+				var storageData = {
 					timeStamp			: new Date().getTime()
 					, identifier		: identifier
 					, data				: data
-				}
+				};
 
-				window.localStorage.setItem( 'socialStream-' + serviceName + '-' + identifier, JSON.stringify( data ) );
+				window.localStorage.setItem( 'socialStream-' + serviceName + '-' + identifier, JSON.stringify( storageData ) );
 
 			}
 
@@ -191,7 +191,7 @@
 				}
 
 			}
-		}
+		};
 
 
 	} )
@@ -219,8 +219,14 @@
 			else if( originalPost.type === 'link' ) {
 				parseLink( originalPost, post );
 			}
+
+			// Don't parse events. Format isn't too good.
+			else if( originalPost.type === 'event' ) {
+				return false;
+				//parseEvent( originalPost, post );
+			}
 			else {
-				console.error( 'Unknown FB post type: %o', originalPost.type );
+				console.error( 'Unknown FB post type: %o, data is %o', originalPost.type, originalPost );
 			}
 
 			return post;
@@ -307,6 +313,15 @@
 		}
 
 
+
+		function parseEvent( originalPost, post ) {
+			post.title			= originalPost.caption;
+			var desc = originalPost.description;
+			post.text			= desc.length > 70 ? desc.substring( 0, 70 ) + ' …' : desc;
+		}
+
+
+
 		function parseLink( originalPost, post ) {
 
 			post.title		= parseMessage( originalPost.message, originalPost.message_tags );
@@ -321,7 +336,7 @@
 			// PICTURE
 			// See parsePhoto
 			if( originalPost.object_id ) {
-				post.image	= 'https://graph.facebook.com/' + originalPost.object_id + '/picture'
+				post.image	= 'https://graph.facebook.com/' + originalPost.object_id + '/picture';
 			}
 			// get objectId from link property, looks like https://www.facebook.com/video.php?v=714971548622550
 			else if( post.link && /v=\d*/.test( post.link ) ) {
@@ -351,7 +366,7 @@
 			// originalPost.picture is tiny. Get the larger version by using http://stackoverflow.com/questions/7599638/how-to-get-large-photo-url-in-one-api-call
 			// See parseVideo
 			if( originalPost.object_id ) {
-				post.image		= 'https://graph.facebook.com/' + originalPost.object_id + '/picture'
+				post.image		= 'https://graph.facebook.com/' + originalPost.object_id + '/picture';
 			}
 			else {
 				post.image		= originalPost.picture;
@@ -381,7 +396,7 @@
 				return a.offset > b.offset ? -1 : 1;
 			} );
 
-			for( var i = 0; i < tags.length; i++ ) {
+			for( i = 0; i < tags.length; i++ ) {
 				var tag = tags[ i ];
 				message = message.substr( 0, tag.offset ) + '<a href=\'http://facebook.com/' + tag.id  + '\'>' + message.substr( tag.offset, tag.length ) + '</a>' + message.substr( tag.offset + tag.length );
 			}
@@ -410,6 +425,12 @@
 
 					for( var i = 0; i < response.data.data.length; i++ ) {
 						var parsedPost = parsePost( response.data.data[ i ], fbProxyUrl, fbPage );
+
+						// We didn't parse the post for some reason (e.g. events)
+						if( parsedPost === false ) {
+							continue;
+						}
+
 						posts.push( parsedPost );
 					}
 
@@ -447,7 +468,7 @@
 			post.publishDate	= new Date( originalTweet.find( '.header time' ).attr( 'datetime' ).replace( /\+\d{4,4}$/, '' ) );
 
 			post.author			= parseAuthor( originalTweet, post );
-			post.originalLink	= post.author.link + '/status/' + originalTweet.data( 'tweetId' )
+			post.originalLink	= post.author.link + '/status/' + originalTweet.data( 'tweetId' );
 
 			post.actions		= post.actions.concat( parseActions( originalTweet ) );
 
@@ -527,7 +548,7 @@
 				} );
 
 			}
-		}
+		};
 
 	} ] )
 
@@ -546,7 +567,7 @@
 			post.source			= 'instagram';
 
 			if( originalPost.images && originalPost.images.standard_resolution ) {
-				post.image		= originalPost.images.standard_resolution.url
+				post.image		= originalPost.images.standard_resolution.url;
 			}
 
 			if( originalPost.caption ) {
@@ -627,7 +648,7 @@
 
 			}
 
-		}
+		};
 
 
 	} ] );
@@ -713,7 +734,7 @@
 		} );
 
 
-	};
+	}
 
 
 	function PostAction() {
