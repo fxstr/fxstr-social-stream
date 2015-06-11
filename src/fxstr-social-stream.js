@@ -333,14 +333,16 @@
 
 		function parseVideo( originalPost, post ) {
 
+			var videoIdRegex = new RegExp( 'v=(\\d*)$' );
+
 			// PICTURE
 			// See parsePhoto
 			if( originalPost.object_id ) {
 				post.image	= 'https://graph.facebook.com/' + originalPost.object_id + '/picture';
 			}
 			// get objectId from link property, looks like https://www.facebook.com/video.php?v=714971548622550
-			else if( post.link && /v=\d*/.test( post.link ) ) {
-				var objectId = /v=(\d*)$/.exec( post.link )[ 1 ];
+			else if( post.link && videoIdRegex.test( post.link ) && videoIdRegex.exec( post.link ).length > 1 ) {
+				var objectId = videoIdRegex.exec( post.link )[ 1 ];
 				post.image = 'https://graph.facebook.com/' + objectId + '/picture';
 			}
 			else {
